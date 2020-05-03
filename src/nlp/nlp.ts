@@ -3,9 +3,6 @@ import cheerio from 'cheerio';
 import { Page, Browser } from 'puppeteer';
 
 
-
-
-
 export const getKeyWords = async (question: string, browser: Browser) => {
     let page = await browser.newPage();
     await page.goto(`https://wordstat.yandex.ru/#!/?words=${question}`);
