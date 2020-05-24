@@ -15,8 +15,6 @@ interface article {
     description: string
 }
 
-
-
 export const ParseArticlesByWords = async (words:string[])=>{
     await Promise.all(
         words.map(async (word:string)=>{
@@ -147,20 +145,3 @@ const AddArticlesToDB = async (articles:article[])=>{
         }
     }
 };
-
-
-// ParseArticlesByWords(['https'])
-(GetArticlesByWords(['https','http','шифрование']))
-
-// const test = async (word:string)=>{
-//     await Word.findOne({where:{word}})
-//         .then(async (wordData:any)=>{
-//             await wordData.getArticles().then((articleData:any)=>{
-//                 articleData.forEach((data:any)=>{
-//                     console.log(data.dataValues.id);
-                    
-//                 })
-//             })
-//         })
-// }
-// test('https')
