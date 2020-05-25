@@ -16,11 +16,9 @@ interface article {
 }
 
 export const ParseArticlesByWords = async (words:string[])=>{
-    await Promise.all(
-        words.map(async (word:string)=>{
-            await ParseWords(word)
-        })
-    )
+    for (let i = 0; i < words.length; i++) {
+        await ParseWords(words[i])
+    }
 }
 
 export const GetArticlesByWords = async (words:string[]) =>{
@@ -145,3 +143,5 @@ const AddArticlesToDB = async (articles:article[])=>{
         }
     }
 };
+
+ParseArticlesByWords(['html','linux'])
