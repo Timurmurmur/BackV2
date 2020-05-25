@@ -107,41 +107,49 @@ const articlesParse = async (links: link[]) => {
   return articles;
 };
 
-const AddArticlesToDB = async (articles:article[])=>{
-      for (let i = 0; i < articles.length; i++) {
-        await Promise.all(
-            articles[i].keyWords.map(async (keyword:string)=>{
-                await Word.findOne({where:{word:keyword}})
-                .then((word:object)=>{
-                    if(!word){
-                        Word.create({word:keyword})
-                    }
-                })
-            })
-        )
-      }
-      for (let i = 0; i < articles.length; i++) {
-            try{
+const AddArticlesToDB = async (articles: article[]) => {
+  for (let i = 0; i < articles.length; i++) {
+    await Promise.all(
+      articles[i].keyWords.map(async (keyword: string) => {
+        await Word.findOne({ where: { word: keyword } }).then(
+          (word: object) => {
+            if (!word) {
+              Word.create({ word: keyword });
+            }
+          }
+        );
+      })
+    );
+  }
+  for (let i = 0; i < articles.length; i++) {
+    try {
+      await Article.findOne({ where: { title: articles[i].title } }).then(
+        async (findArticle: any) => {
+          if (!findArticle) {
             await Article.create({
-                article:articles[i].article,
-                preArticle:articles[i].description,
-                sourse:articles[i].sourse,
-                link:articles[i].link,
-                title:articles[i].title
-            }).then(async(newArticle:any)=>{
-                await Promise.all(
-                    articles[i].keyWords.map((keyWord:string)=>{
-                        Word.findOne({where:{word:keyWord}})
-                            .then((word:any)=>{
-                                word.addArticle(newArticle)
-                            })
-                    })
-                )
-            })
-        }catch(e){
-            console.log(e);
+              article: articles[i].article,
+              preArticle: articles[i].description,
+              sourse: articles[i].sourse,
+              link: articles[i].link,
+              title: articles[i].title,
+            }).then(async (newArticle: any) => {
+              await Promise.all(
+                articles[i].keyWords.map((keyWord: string) => {
+                  Word.findOne({ where: { word: keyWord } }).then(
+                    (word: any) => {
+                      word.addArticle(newArticle);
+                    }
+                  );
+                })
+              );
+            });
+          }
         }
+      );
+    } catch (e) {
+      console.log(e);
     }
+  }
 };
 
 ParseArticlesByWords(['html','настроить'])
