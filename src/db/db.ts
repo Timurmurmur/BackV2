@@ -5,14 +5,15 @@ const sequelize = new Sequelize('heroku_a0a8202b53d48f8', 'b3d0823c0e716e', 'aef
     dialect: 'mysql',
     define: {
         timestamps: false
-    }
+    },
+    logging:false
 });
 
 sequelize.authenticate()
     .then(() => console.log('Connected to DB'))
     .catch((err: Error) => console.error('Connection error: ', err));
 
-// sequelize.sync({ force: true })
+sequelize.sync({ force: true })
 const Word = sequelize.define("word", {
     id: {
         type: Sequelize.INTEGER,

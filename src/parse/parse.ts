@@ -68,7 +68,7 @@ const ParseWords = async (word:string)=>{
 const habrParseLinks = async (word: string) => {
     const links =  await axios
     .post(
-      `https://habr.com/ru/search/?target_type=posts&q=${word}&order_by=relevance`
+      `https://habr.com/ru/search/?target_type=posts&q=${encodeURI(word)}&order_by=relevance`
     )
     .then(async (data) => {
       var $ = cheerio.load(data.data);
@@ -144,4 +144,4 @@ const AddArticlesToDB = async (articles:article[])=>{
     }
 };
 
-ParseArticlesByWords(['html','linux'])
+ParseArticlesByWords(['html','настроить'])
