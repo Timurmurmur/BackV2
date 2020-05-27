@@ -44,9 +44,11 @@ export const GetArticlesByWords = async (words:string[]) =>{
                })    
             })
     }
+
     unSortArticlesId.sort((a:any,b:any)=>{
         return b[1]-a[1]
     })
+    
     let sortArticlesId = unSortArticlesId.slice(0, 10);
     for (let i = 0; i < sortArticlesId.length; i++) {
         await Article.findByPk(sortArticlesId[i][0]).
@@ -121,6 +123,7 @@ const AddArticlesToDB = async (articles: article[]) => {
       })
     );
   }
+
   for (let i = 0; i < articles.length; i++) {
     try {
       await Article.findOne({ where: { title: articles[i].title } }).then(
@@ -152,4 +155,3 @@ const AddArticlesToDB = async (articles: article[]) => {
   }
 };
 
-ParseArticlesByWords(['html','настроить'])

@@ -4,9 +4,11 @@ import bodyParser from "body-parser";
 import puppeteer, { Browser } from 'puppeteer';
 import cors from "cors";
 // import { getKeyWords } from "./nlp/nlp";
-import { getKeyWords } from "./mystem";
+import { getKeyWords,  } from "./mystem";
+import { ParseArticlesByWords } from './parse/parse'
+const app:any = express();
 
-const app = express();
+let expressWs = require('express-ws')(app);
 
 // let browser = puppeteer.launch({
 //   headless: false
@@ -44,12 +46,22 @@ app.use(
     preflightContinue: false
   })
 );
+
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
     extended: true
   })
 );
+
+app.ws('/addTermins',async (ws:any,req:Request, res:Response)=>{
+  ws.on('message',async (data:any)=>{
+    let sendsData = JSON.parse(data)
+    console.log(sendsData);
+    ws.send(await ParseArticlesByWords(sendsData.words))
+    ws.close()
+  })
+})
 
 app.get('/word', async (req: Request, res: Response) => {
   const message = 'Как правильно настроить linux';
