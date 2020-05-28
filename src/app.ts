@@ -5,14 +5,14 @@ import express, {
 
 import bodyParser from "body-parser";
 import cors from "cors";
-import {
-  getKeyWords
-} from "./mystem";
 import { ParseArticlesByWords, GetArticlesByWords } from "./parse/parse";
 import { addDefinition } from "./term/term";
 import { data } from "./data";
+// import { getKeyWords } from "./nlp/nlp";
+import { getKeyWords,  } from "./mystem";
+const app:any = express();
 
-const app = express();
+let expressWs = require('express-ws')(app);
 
 
 app.use(
@@ -24,6 +24,7 @@ app.use(
     preflightContinue: false
   })
 );
+
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
@@ -45,6 +46,15 @@ app.post('/termin' , async (req: Request, res: Response) => {
   res.send(req.body);
 })
 
+
+app.ws('/addTermins',async (ws:any,req:Request, res:Response)=>{
+  ws.on('message',async (data:any)=>{
+    let sendsData = JSON.parse(data)
+    console.log(sendsData);
+    ws.send(await ParseArticlesByWords(sendsData.words))
+    ws.close()
+  })
+})
 
 app.get('/word', async (req: Request, res: Response) => {
   const message = 'Что такое html';

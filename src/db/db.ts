@@ -37,7 +37,11 @@ const Article = sequelize.define("article", {
         type: Sequelize.TEXT,
         allowNull: false
     },
-    article: {
+    articleHtml: {
+        type: Sequelize.TEXT,
+        allowNull: false
+    },
+    articleText: {
         type: Sequelize.TEXT,
         allowNull: false
     },
@@ -78,6 +82,17 @@ const Definition = sequelize.define("definition", {
         allowNull: false
     }
 })
+const Association = sequelize.define("association", {
+    id: {
+        type: Sequelize.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+    },
+    num: {
+        type: Sequelize.FLOAT,
+        allowNull: false
+    }
+});
 
 const Relation = sequelize.define("relation", {
     id: {
@@ -91,6 +106,7 @@ const Relation = sequelize.define("relation", {
 
 
 Definition.hasMany(Term);
+Word.belongsToMany(Association,{through: Relation})
 Word.belongsToMany(Article,{through: Relation})
 Article.belongsToMany(Word,{through: Relation})
 
