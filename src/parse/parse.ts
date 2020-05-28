@@ -86,7 +86,6 @@ const CountAssociationRang = async ()=>{
   })
 }
 
-
 const ParseWords = async (word: string) => {
   let links: link[] = []
   links.push(...(await habrParseLinks(word)))
