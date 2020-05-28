@@ -129,4 +129,4 @@ Word.belongsToMany(Article,{through: Relation})
 Article.belongsToMany(Word,{through: Relation})
 
 
-export {Word, Article, Relation, Term, Definition}
+export {Word, Article, Relation, Term, Definition, Association}
