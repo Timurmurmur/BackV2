@@ -13,7 +13,8 @@ sequelize.authenticate()
     .then(() => console.log('Connected to DB'))
     .catch((err: Error) => console.error('Connection error: ', err));
 
-// sequelize.sync({ force: true })
+sequelize.sync();
+
 const Word = sequelize.define("word", {
     id: {
         type: Sequelize.INTEGER,
@@ -54,6 +55,30 @@ const Article = sequelize.define("article", {
     }
 });
 
+const Term = sequelize.define("term", {
+    id: {
+        type: Sequelize.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    termin: {
+        type: Sequelize.TEXT,
+        allowNull: false
+    },
+})
+
+const Definition = sequelize.define("definition", {
+    id: {
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+        autoIncrement: true
+    },
+    definition: {
+        type: Sequelize.TEXT,
+        allowNull: false
+    }
+})
+
 const Relation = sequelize.define("relation", {
     id: {
       type: Sequelize.INTEGER,
@@ -64,8 +89,10 @@ const Relation = sequelize.define("relation", {
 
 })
 
+
+Definition.hasMany(Term);
 Word.belongsToMany(Article,{through: Relation})
 Article.belongsToMany(Word,{through: Relation})
 
 
-export {Word, Article, Relation}
+export {Word, Article, Relation, Term, Definition}

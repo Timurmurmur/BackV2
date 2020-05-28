@@ -1,38 +1,18 @@
-import express, { Request, Response } from "express";
+import express, {
+  Request,
+  Response
+} from "express";
 
 import bodyParser from "body-parser";
-import puppeteer, { Browser } from 'puppeteer';
 import cors from "cors";
-// import { getKeyWords } from "./nlp/nlp";
-import { getKeyWords } from "./mystem";
+import {
+  getKeyWords
+} from "./mystem";
+import { ParseArticlesByWords, GetArticlesByWords } from "./parse/parse";
+import { addDefinition } from "./term/term";
+import { data } from "./data";
 
 const app = express();
-
-// let browser = puppeteer.launch({
-//   headless: false
-// }).then((browser) => {
-//   initLogin(browser);
-//   return browser;
-// });
-
-// const initLogin = async (browser: Browser) => {
-//   const page = await browser.newPage();
-//   const url = "https://wordstat.yandex.ru/#!/?words=";
-//   const login = '***';
-//   const pass = '***';
-//   const loginSelector = "#b-domik_popup-username";
-//   const passSelector = "#b-domik_popup-password";
-
-//   await page.goto(`${url}test`);
-//   await page.waitForSelector(loginSelector);
-//   await page.type(loginSelector,login);
-//   await page.waitForSelector(loginSelector);
-//   await page.type(passSelector, pass);
-//   setTimeout(async () => {
-//     await page.click('.b-domik__button .b-form-button.b-form-button_size_m.b-form-button_theme_grey-m.b-form-button_valign_middle.i-bem.b-form-button_js_inited span.b-form-button__content');
-//   }, 1000);
-//   await page.content();
-// }
 
 
 app.use(
@@ -51,10 +31,27 @@ app.use(
   })
 );
 
+app.put('/termin', async (req: Request, res: Response) => {
+  const { termin, definition } = req.body;
+  console.log(typeof termin, typeof definition);
+  console.log();
+  res.send({ success: true })
+})
+
+app.post('/termin' , async (req: Request, res: Response) => {
+  const { question } = req.body;
+  const keyWords = await getKeyWords(question);
+
+  res.send(req.body);
+})
+
+
 app.get('/word', async (req: Request, res: Response) => {
-  const message = 'Как правильно настроить linux';
+  const message = 'Что такое html';
   const keyWords = await getKeyWords(message);
-  res.send(keyWords);
+  await ParseArticlesByWords(keyWords);
+  // const articles = await GetArticlesByWords(keyWords);
+  // res.send(articles);
 });
 
 app.listen(80);

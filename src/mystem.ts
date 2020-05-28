@@ -6,7 +6,6 @@ const exec = util.promisify(cmd.exec);
 export const getKeyWords = async (question: string) => {
     let { stdout, stderr } = await exec(`python ./python/mystem.py "${question}"`, { encoding : 'utf-8' });
     let result = JSON.parse(stdout);
-    console.log(result);
     let keywords: string[] = []
     result.map((el: any, index: any) => {
         if (el.analysis !== undefined) {
