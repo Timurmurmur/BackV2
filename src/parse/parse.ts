@@ -22,49 +22,74 @@ export const ParseArticlesByWords = async (words:string[])=>{
     }
 }
 
-export const GetArticlesByWords = async (words:string[]) =>{
-    let unSortArticlesId: any  = []
-    let sortArticles: object[] = []
-    for (let i = 0; i < words.length; i++) {
-        await Word.findOne({where:{word:words[i]}})
-            .then(async(word:any)=>{
-               console.log(word.word);
-               await word.getArticles().then((articles:any)=>{
-                    articles.forEach((article:any) => {
-                        let find = false
-                        unSortArticlesId.forEach((unSortArticleId:any) => {
-                            if(unSortArticleId[0]==article.dataValues.id){
-                                unSortArticleId[1]++
-                                find = true
-                            }
-                        });
-                        if(!find){
-                            unSortArticlesId.push([article.id, 1]);
-                        }
-                    });
-               })    
+export const GetArticlesByWords = async (words:any)=>{
+    let allAssociations:any[] = []
+    let allArticles:any[] = []
+    for (const word of words) {
+        await Word.findOne({where:{word}}).then(async (findWord:any)=>{
+            await findWord.getAssociations().then((associations:any)=>{
+                allAssociations.push(...associations)
             })
+        })
     }
-
-    unSortArticlesId.sort((a:any,b:any)=>{
-        return b[1]-a[1]
+    allAssociations.sort((a:any,b:any)=>{
+        return b.dataValues.num - a.dataValues.num
     })
-    
-    let sortArticlesId = unSortArticlesId.slice(0, 10);
-    for (let i = 0; i < sortArticlesId.length; i++) {
-        await Article.findByPk(sortArticlesId[i][0]).
-            then((article:any)=>{
-                sortArticles.push(article.dataValues)
+    console.log(allAssociations);
+    for (const association of allAssociations) {
+        await Relation.findOne({where:{associationId:association.id}}).then(async (relation:any)=>{
+            await Article.findByPk(relation.articleId).then((article:any)=>{
+                allArticles.push(article)
             })
+        })
     }
-    return sortArticles
+    return allArticles
 }
+// export const GetArticlesByWords = async (words:string[]) =>{
+//     let unSortArticlesId: any  = []
+//     let sortArticles: object[] = []
+//     for (let i = 0; i < words.length; i++) {
+//         await Word.findOne({where:{word:words[i]}})
+//             .then(async(word:any)=>{
+//                console.log(word.word);
+//                await word.getArticles().then((articles:any)=>{
+//                     articles.forEach((article:any) => {
+//                         let find = false
+//                         unSortArticlesId.forEach((unSortArticleId:any) => {
+//                             if(unSortArticleId[0]==article.dataValues.id){
+//                                 unSortArticleId[1]++
+//                                 find = true
+//                             }
+//                         });
+//                         if(!find){
+//                             unSortArticlesId.push([article.id, 1]);
+//                         }
+//                     });
+//                })    
+//             })
+//     }
+
+//     unSortArticlesId.sort((a:any,b:any)=>{
+//         return b[1]-a[1]
+//     })
+    
+//     let sortArticlesId = unSortArticlesId.slice(0, 10);
+//     for (let i = 0; i < sortArticlesId.length; i++) {
+//         await Article.findByPk(sortArticlesId[i][0]).
+//             then((article:any)=>{
+//                 sortArticles.push(article.dataValues)
+//             })
+//     }
+//     return sortArticles
+// }
 
 const CountAssociationRang = async ()=>{
-  await Association.destroy({
-    where: {},
-    truncate: true
-  })
+  if(!(await Association.count()==0)){
+    await Association.destroy({
+      where: {},
+      truncate: true
+    })
+  }
   const CountOfArticles = await Article.count()
   await Relation.findAll().then(async(data:any)=>{
     for (const item of data) {
@@ -179,5 +204,6 @@ const AddArticlesToDB = async (articles: article[]) => {
     }
   }
 };
-ParseArticlesByWords(['html'])
-// CountAssociationRang()
+
+// ParseArticlesByWords(['html'])
+CountAssociationRang()
