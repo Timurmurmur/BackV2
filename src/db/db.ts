@@ -13,7 +13,7 @@ sequelize.authenticate()
     .then(() => console.log('Connected to DB'))
     .catch((err: Error) => console.error('Connection error: ', err));
 
-// sequelize.sync({ force: true })
+sequelize.sync({ force: true })
 const Word = sequelize.define("word", {
     id: {
         type: Sequelize.INTEGER,
@@ -85,4 +85,4 @@ Word.belongsToMany(Article,{through: Relation})
 Article.belongsToMany(Word,{through: Relation})
 
 
-export {Word, Article, Relation}
+export {Word, Article, Relation,Association}

@@ -1,7 +1,7 @@
 import axios from "axios";
 import cheerio from "cheerio";
 
-import { Word, Article, Relation } from '../db/db';
+import { Word, Article,Relation ,Association } from '../db/db';
 interface link {
     link: string,
     sourse: string,
@@ -60,6 +60,28 @@ export const GetArticlesByWords = async (words:string[]) =>{
     return sortArticles
 }
 
+const CountAssociationRang = async ()=>{
+  await Association.destroy({
+    where: {},
+    truncate: true
+  })
+  const CountOfArticles = await Article.count()
+  await Relation.findAll().then(async(data:any)=>{
+    for (const item of data) {
+      await Word.findByPk(item.dataValues.wordId).then(async(word:any)=>{
+        await word.getArticles().then(async(articles:any)=>{
+          const ArticleOfWord = articles.length
+          for (const article of articles) {
+            await Association.create({num:Math.abs((article.dataValues.articleText.match(new RegExp(word.word, "g")) || []).length*Math.log10(ArticleOfWord/CountOfArticles))}).then(async(association:any)=>{
+              await Relation.update({associationId:association.id},{where:{wordId:word.id,articleId:article.dataValues.id}})
+            })
+          } 
+        })
+      })
+    }
+  })
+}
+
 const ParseWords = async (word:string)=>{
     let links : link[] =[]
     links.push(...(await habrParseLinks(word)))
@@ -99,7 +121,7 @@ const articlesParse = async (links: link[]) => {
                     case 'Habr' :{
                         article.title = $('.post__title-text').text()
                         article.articleHtml = String($('.post__text-html').html())
-                        article.articleText = $('.post__text-html').text()
+                        article.articleText = $('.post__text-html').text().toLowerCase()
                         article.description = String($('meta[name="description"]').attr('content'))
                         article.keyWords = ((String($('meta[name="keywords"]').attr('content'))).replace(/,/g, '')).split(' ')
                         break
@@ -118,7 +140,7 @@ const AddArticlesToDB = async (articles: article[]) => {
         await Word.findOne({ where: { word: keyword } }).then(
           (word: object) => {
             if (!word) {
-              Word.create({ word: keyword });
+              Word.create({ word: keyword.toLowerCase() });
             }
           }
         );
@@ -157,4 +179,5 @@ const AddArticlesToDB = async (articles: article[]) => {
     }
   }
 };
-
+ParseArticlesByWords(['html'])
+// CountAssociationRang()
