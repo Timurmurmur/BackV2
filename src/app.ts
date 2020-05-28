@@ -2,18 +2,18 @@ import express, {
   Request,
   Response
 } from "express";
-
+import { sign } from 'jsonwebtoken';
 import bodyParser from "body-parser";
 import cors from "cors";
 import { ParseArticlesByWords, GetArticlesByWords } from "./parse/parse";
-import { addDefinition } from "./term/term";
+import { addDefinition, getAllTermins, changeTermin } from "./term/term";
 import { data } from "./data";
-// import { getKeyWords } from "./nlp/nlp";
-import { getKeyWords,  } from "./mystem";
+import { getKeyWords } from "./mystem";
+import { login, password, secret } from "./config/config";
+import { authMiddleWare } from "./middleware/auth";
 const app:any = express();
 
 let expressWs = require('express-ws')(app);
-
 
 app.use(
   cors({
@@ -32,12 +32,33 @@ app.use(
   })
 );
 
-app.put('/termin', async (req: Request, res: Response) => {
+app.post('/login', async (req: Request, res: Response) => {
+  const isVlid = req.body.login === login && req.body.password === password;
+  if (isVlid) {
+    const token = sign({ login, password  }, secret)
+    res.json({ token })
+  } else {
+    res.status(401).json({ error: "Не верный логин или пароль" })
+  }
+})
+
+app.put('/termin',authMiddleWare, async (req: Request, res: Response) => {
   const { termin, definition } = req.body;
-  console.log(typeof termin, typeof definition);
-  console.log();
+  await changeTermin(termin, definition);
   res.send({ success: true })
 })
+
+app.get('/termin',authMiddleWare, async (req: Request, res: Response) => {
+  const { from, to } = req.query;
+  const data = await getAllTermins(Number(from + '1'), Number(to + '1'));
+  res.send(data);
+})
+
+app.post('/termin/add',authMiddleWare, async (req: Request, res: Response) => {
+  const { termin, definition } = req.body;
+  const result = await addDefinition(termin, definition);
+  res.send({ success: 'Success' })
+});
 
 app.post('/termin' , async (req: Request, res: Response) => {
   const { question } = req.body;
@@ -47,7 +68,7 @@ app.post('/termin' , async (req: Request, res: Response) => {
 })
 
 
-app.ws('/addTermins',async (ws:any,req:Request, res:Response)=>{
+app.ws('/addArticles',authMiddleWare,async (ws:any,req:Request, res:Response)=>{
   ws.on('message',async (data:any)=>{
     let sendsData = JSON.parse(data)
     console.log(sendsData);
@@ -59,9 +80,9 @@ app.ws('/addTermins',async (ws:any,req:Request, res:Response)=>{
 app.get('/word', async (req: Request, res: Response) => {
   const message = 'Что такое html';
   const keyWords = await getKeyWords(message);
-  await ParseArticlesByWords(keyWords);
-  // const articles = await GetArticlesByWords(keyWords);
-  // res.send(articles);
+  // await ParseArticlesByWords(keyWords);
+  const articles = await GetArticlesByWords(keyWords);
+  res.send(articles);
 });
 
 app.listen(80);
