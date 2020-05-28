@@ -1,4 +1,4 @@
-const Sequelize = require('sequelize')
+import { Sequelize, DataTypes, Model } from 'sequelize';
 
 const sequelize = new Sequelize('heroku_a0a8202b53d48f8', 'b3d0823c0e716e', 'aefe8fe6', {
     host: 'eu-cdbr-west-02.cleardb.net',
@@ -13,76 +13,120 @@ sequelize.authenticate()
     .then(() => console.log('Connected to DB'))
     .catch((err: Error) => console.error('Connection error: ', err));
 
-// sequelize.sync({ force: true })
-const Word = sequelize.define("word", {
+sequelize.sync();
+
+class Word extends Model {}
+class Article extends Model {}
+class Term extends Model {}
+class Definition extends Model {}
+class Association extends Model {}
+class Relation extends Model {}
+
+Word.init({
     id: {
-        type: Sequelize.INTEGER,
+        type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
     word: {
-        type: Sequelize.STRING,
+        type: DataTypes.STRING,
         allowNull: false
     }
-});
+}, {
+    sequelize,
+    modelName: "word"
+})
 
-const Article = sequelize.define("article", {
+Article.init({
     id: {
-        type: Sequelize.INTEGER,
+        type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true,
     },
     title: {
-        type: Sequelize.TEXT,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     articleHtml: {
-        type: Sequelize.TEXT,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     articleText: {
-        type: Sequelize.TEXT,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     link: {
-        type: Sequelize.STRING,
+        type: DataTypes.STRING,
         allowNull: false
     },
     preArticle: {
-        type: Sequelize.TEXT,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     sourse:{
-        type: Sequelize.STRING,
+        type: DataTypes.STRING,
         allowNull: false
     }
-});
+}, {
+    sequelize,
+    modelName: "article",
+})
 
-const Association = sequelize.define("association", {
+Term.init({
     id: {
-        type: Sequelize.INTEGER,
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    termin: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+}, {sequelize, modelName: "term"})
+
+Definition.init({
+    id: {
+        primaryKey: true,
+        type: DataTypes.INTEGER,
+        autoIncrement: true
+    },
+    definition: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    }
+}, {
+    sequelize,
+    modelName: "definition"
+})
+
+Association.init({
+    id: {
+        type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
     },
     num: {
-        type: Sequelize.FLOAT,
+        type: DataTypes.FLOAT,
         allowNull: false
     }
-});
+}, {sequelize, modelName: "association"})
 
-const Relation = sequelize.define("relation", {
+Relation.init({
     id: {
-      type: Sequelize.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-      allowNull: false
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+        allowNull: false
     }
-
+}, {
+    sequelize,
+    modelName: "relation"
 })
 
+Definition.hasMany(Term);
 Word.belongsToMany(Association,{through: Relation})
 Word.belongsToMany(Article,{through: Relation})
 Article.belongsToMany(Word,{through: Relation})
 
 
-export {Word, Article, Relation,Association}
+export {Word, Article, Relation, Term, Definition, Association}

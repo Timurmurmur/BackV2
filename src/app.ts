@@ -1,41 +1,19 @@
-import express, { Request, Response } from "express";
-
+import express, {
+  Request,
+  Response
+} from "express";
+import { sign } from 'jsonwebtoken';
 import bodyParser from "body-parser";
-import puppeteer, { Browser } from 'puppeteer';
 import cors from "cors";
-// import { getKeyWords } from "./nlp/nlp";
-import { getKeyWords,  } from "./mystem";
-import { ParseArticlesByWords } from './parse/parse'
+import { ParseArticlesByWords, GetArticlesByWords } from "./parse/parse";
+import { addDefinition, getAllTermins, changeTermin } from "./term/term";
+import { data } from "./data";
+import { getKeyWords } from "./mystem";
+import { login, password, secret } from "./config/config";
+import { authMiddleWare } from "./middleware/auth";
 const app:any = express();
 
 let expressWs = require('express-ws')(app);
-
-// let browser = puppeteer.launch({
-//   headless: false
-// }).then((browser) => {
-//   initLogin(browser);
-//   return browser;
-// });
-
-// const initLogin = async (browser: Browser) => {
-//   const page = await browser.newPage();
-//   const url = "https://wordstat.yandex.ru/#!/?words=";
-//   const login = '***';
-//   const pass = '***';
-//   const loginSelector = "#b-domik_popup-username";
-//   const passSelector = "#b-domik_popup-password";
-
-//   await page.goto(`${url}test`);
-//   await page.waitForSelector(loginSelector);
-//   await page.type(loginSelector,login);
-//   await page.waitForSelector(loginSelector);
-//   await page.type(passSelector, pass);
-//   setTimeout(async () => {
-//     await page.click('.b-domik__button .b-form-button.b-form-button_size_m.b-form-button_theme_grey-m.b-form-button_valign_middle.i-bem.b-form-button_js_inited span.b-form-button__content');
-//   }, 1000);
-//   await page.content();
-// }
-
 
 app.use(
   cors({
@@ -54,7 +32,43 @@ app.use(
   })
 );
 
-app.ws('/addTermins',async (ws:any,req:Request, res:Response)=>{
+app.post('/login', async (req: Request, res: Response) => {
+  const isVlid = req.body.login === login && req.body.password === password;
+  if (isVlid) {
+    const token = sign({ login, password  }, secret)
+    res.json({ token })
+  } else {
+    res.status(401).json({ error: "Не верный логин или пароль" })
+  }
+})
+
+app.put('/termin',authMiddleWare, async (req: Request, res: Response) => {
+  const { termin, definition } = req.body;
+  await changeTermin(termin, definition);
+  res.send({ success: true })
+})
+
+app.get('/termin',authMiddleWare, async (req: Request, res: Response) => {
+  const { from, to } = req.query;
+  const data = await getAllTermins(Number(from + '1'), Number(to + '1'));
+  res.send(data);
+})
+
+app.post('/termin/add',authMiddleWare, async (req: Request, res: Response) => {
+  const { termin, definition } = req.body;
+  const result = await addDefinition(termin, definition);
+  res.send({ success: 'Success' })
+});
+
+app.post('/termin' , async (req: Request, res: Response) => {
+  const { question } = req.body;
+  const keyWords = await getKeyWords(question);
+
+  res.send(req.body);
+})
+
+
+app.ws('/addArticles',authMiddleWare,async (ws:any,req:Request, res:Response)=>{
   ws.on('message',async (data:any)=>{
     let sendsData = JSON.parse(data)
     console.log(sendsData);
@@ -64,9 +78,11 @@ app.ws('/addTermins',async (ws:any,req:Request, res:Response)=>{
 })
 
 app.get('/word', async (req: Request, res: Response) => {
-  const message = 'Как правильно настроить linux';
+  const message = 'Что такое html';
   const keyWords = await getKeyWords(message);
-  res.send(keyWords);
+  // await ParseArticlesByWords(keyWords);
+  const articles = await GetArticlesByWords(keyWords);
+  res.send(articles);
 });
 
 app.listen(80);

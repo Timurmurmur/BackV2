@@ -3,11 +3,11 @@ import cheerio from "cheerio";
 
 import { Word, Article,Relation ,Association } from '../db/db';
 interface link {
-    link: string,
+  link: string,
     sourse: string,
 }
 interface article {
-    title: string,
+  title: string,
     sourse: string,
     link: string,
     articleHtml: string,
@@ -16,34 +16,74 @@ interface article {
     description: string
 }
 
-export const ParseArticlesByWords = async (words:string[])=>{
-    for (let i = 0; i < words.length; i++) {
-        await ParseWords(words[i])
-    }
+export const ParseArticlesByWords = async (words: string[]) => {
+  for (let i = 0; i < words.length; i++) {
+    await ParseWords(words[i])
+  }
 }
 
-export const GetArticlesByWords = async (words:any)=>{
-    let allAssociations:any[] = []
-    let allArticles:any[] = []
-    for (const word of words) {
-        await Word.findOne({where:{word}}).then(async (findWord:any)=>{
-            await findWord.getAssociations().then((associations:any)=>{
-                allAssociations.push(...associations)
-            })
+export const GetArticlesByWords = async (words: string[]) => {
+  let unSortArticlesId: any = []
+  let sortArticles: object[] = []
+  for (let i = 0; i < words.length; i++) {
+    await Word.findOne({
+        where: {
+          word: words[i]
+        }
+      })
+      .then(async (word: any) => {
+        console.log(word.word);
+        await word.getArticles().then((articles: any) => {
+          articles.forEach((article: any) => {
+            let find = false
+            unSortArticlesId.forEach((unSortArticleId: any) => {
+              if (unSortArticleId[0] == article.dataValues.id) {
+                unSortArticleId[1]++
+                find = true
+              }
+            });
+            if (!find) {
+              unSortArticlesId.push([article.id, 1]);
+            }
+          });
         })
-    }
-    allAssociations.sort((a:any,b:any)=>{
-        return b.dataValues.num - a.dataValues.num
+      })
+  }
+
+  unSortArticlesId.sort((a: any, b: any) => {
+    return b[1] - a[1]
+  })
+
+  let sortArticlesId = unSortArticlesId.slice(0, 10);
+  for (let i = 0; i < sortArticlesId.length; i++) {
+    await Article.findByPk(sortArticlesId[i][0]).
+    then((article: any) => {
+      sortArticles.push(article.dataValues)
     })
-    console.log(allAssociations);
-    for (const association of allAssociations) {
-        await Relation.findOne({where:{associationId:association.id}}).then(async (relation:any)=>{
-            await Article.findByPk(relation.articleId).then((article:any)=>{
-                allArticles.push(article)
-            })
-        })
-    }
-    return allArticles
+  }
+  return sortArticles
+// export const GetArticlesByWords = async (words:any)=>{
+//     let allAssociations:any[] = []
+//     let allArticles:any[] = []
+//     for (const word of words) {
+//         await Word.findOne({where:{word}}).then(async (findWord:any)=>{
+//             await findWord.getAssociations().then((associations:any)=>{
+//                 allAssociations.push(...associations)
+//             })
+//         })
+//     }
+//     allAssociations.sort((a:any,b:any)=>{
+//         return b.dataValues.num - a.dataValues.num
+//     })
+//     console.log(allAssociations);
+//     for (const association of allAssociations) {
+//         await Relation.findOne({where:{associationId:association.id}}).then(async (relation:any)=>{
+//             await Article.findByPk(relation.articleId).then((article:any)=>{
+//                 allArticles.push(article)
+//             })
+//         })
+//     }
+//     return allArticles
 }
 // export const GetArticlesByWords = async (words:string[]) =>{
 //     let unSortArticlesId: any  = []
@@ -107,16 +147,16 @@ const CountAssociationRang = async ()=>{
   })
 }
 
-const ParseWords = async (word:string)=>{
-    let links : link[] =[]
-    links.push(...(await habrParseLinks(word)))
-    ///
-    const articles = await articlesParse(links)
-    await AddArticlesToDB(articles)
+const ParseWords = async (word: string) => {
+  let links: link[] = []
+  links.push(...(await habrParseLinks(word)))
+  ///
+  const articles = await articlesParse(links)
+  await AddArticlesToDB(articles)
 }
 
 const habrParseLinks = async (word: string) => {
-    const links =  await axios
+  const links = await axios
     .post(
       `https://habr.com/ru/search/?target_type=posts&q=${encodeURI(word)}&order_by=relevance`
     )
@@ -124,7 +164,10 @@ const habrParseLinks = async (word: string) => {
       var $ = cheerio.load(data.data);
       var links: link[] = []
       $('.post_preview .post__title a').each(function (i, elem) {
-        links.push({link:$(elem).attr('href')+'',sourse:'Habr'})
+        links.push({
+          link: $(elem).attr('href') + '',
+          sourse: 'Habr'
+        })
       });
       return links
     })
@@ -162,8 +205,12 @@ const AddArticlesToDB = async (articles: article[]) => {
   for (let i = 0; i < articles.length; i++) {
     await Promise.all(
       articles[i].keyWords.map(async (keyword: string) => {
-        await Word.findOne({ where: { word: keyword } }).then(
-          (word: object) => {
+        await Word.findOne({
+          where: {
+            word: keyword
+          }
+        }).then(
+          (word: any) => {
             if (!word) {
               Word.create({ word: keyword.toLowerCase() });
             }
@@ -175,7 +222,11 @@ const AddArticlesToDB = async (articles: article[]) => {
 
   for (let i = 0; i < articles.length; i++) {
     try {
-      await Article.findOne({ where: { title: articles[i].title } }).then(
+      await Article.findOne({
+        where: {
+          title: articles[i].title
+        }
+      }).then(
         async (findArticle: any) => {
           if (!findArticle) {
             await Article.create({
@@ -188,7 +239,11 @@ const AddArticlesToDB = async (articles: article[]) => {
             }).then(async (newArticle: any) => {
               await Promise.all(
                 articles[i].keyWords.map((keyWord: string) => {
-                  Word.findOne({ where: { word: keyWord } }).then(
+                  Word.findOne({
+                    where: {
+                      word: keyWord
+                    }
+                  }).then(
                     (word: any) => {
                       word.addArticle(newArticle);
                     }
@@ -204,6 +259,3 @@ const AddArticlesToDB = async (articles: article[]) => {
     }
   }
 };
-
-// ParseArticlesByWords(['html'])
-CountAssociationRang()
