@@ -21,7 +21,7 @@ export const ParseArticlesByWords = async (words: string[]) => {
   for (let i = 0; i < words.length; i++) {
     await ParseWords(words[i])
   }
-  await CountAssociationRang()
+  await CountAssociationRang(words)
 }
 
 export const GetArticlesByWords = async (words:any)=>{
@@ -40,7 +40,6 @@ export const GetArticlesByWords = async (words:any)=>{
   allAssociations.sort((a:any,b:any)=>{
       return b.dataValues.num - a.dataValues.num
   })
-  console.log(allAssociations);
   for (const association of allAssociations) {
       await Relation.findOne({where:{associationId:association.id}}).then(async (relation:any)=>{
           await Article.findByPk(relation.articleId).then((article:any)=>{
@@ -62,28 +61,25 @@ export const getAllArticles = async (from: number, to: number) => {
   return result;
 }
 
-const CountAssociationRang = async ()=>{
-  if(!(await Association.count()==0)){
-    await Association.destroy({
-      where: {},
-      truncate: true
+const CountAssociationRang = async (words:string[])=>{
+  const CountOfArticles = await Article.count()
+  for (const word of words) {
+      await Relation.findOne({where:{word}}).then(async(data:any)=>{
+      for (const item of data) {
+        await Word.findByPk(item.dataValues.wordId).then(async(word:any)=>{
+          await word.getArticles().then(async(articles:any)=>{
+            const ArticleOfWord = articles.length
+            for (const article of articles) {
+              await Association.create({num:Math.abs((article.dataValues.articleText.match(new RegExp(word.word, "g")) || []).length*Math.log10(ArticleOfWord/CountOfArticles))}).then(async(association:any)=>{
+                await Relation.update({associationId:association.id},{where:{wordId:word.id,articleId:article.dataValues.id}})
+              })
+            } 
+          })
+        })
+      }
     })
   }
-  const CountOfArticles = await Article.count()
-  await Relation.findAll().then(async(data:any)=>{
-    for (const item of data) {
-      await Word.findByPk(item.dataValues.wordId).then(async(word:any)=>{
-        await word.getArticles().then(async(articles:any)=>{
-          const ArticleOfWord = articles.length
-          for (const article of articles) {
-            await Association.create({num:Math.abs((article.dataValues.articleText.match(new RegExp(word.word, "g")) || []).length*Math.log10(ArticleOfWord/CountOfArticles))}).then(async(association:any)=>{
-              await Relation.update({associationId:association.id},{where:{wordId:word.id,articleId:article.dataValues.id}})
-            })
-          } 
-        })
-      })
-    }
-  })
+  
 }
 
 const ParseWords = async (word: string) => {
