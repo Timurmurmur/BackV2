@@ -1,5 +1,6 @@
 import axios from "axios";
 import cheerio from "cheerio";
+import { Op } from 'sequelize';
 
 import { Word, Article,Relation ,Association } from '../db/db';
 interface link {
@@ -24,33 +25,44 @@ export const ParseArticlesByWords = async (words: string[]) => {
 }
 
 export const GetArticlesByWords = async (words:any)=>{
-    let allAssociations:any[] = []
-    let allArticles:any[] = []
-    for (const word of words) {
-        await Word.findOne({where:{word}}).then(async (findWord:any)=>{
-            if(!findWord){
-              await ParseArticlesByWords(words)
-            }
-            await findWord.getAssociations().then((associations:any)=>{
-                allAssociations.push(...associations)
-            })
-        })
-    }
-    allAssociations.sort((a:any,b:any)=>{
-        return b.dataValues.num - a.dataValues.num
-    })
-    console.log(allAssociations);
-    for (const association of allAssociations) {
-        await Relation.findOne({where:{associationId:association.id}}).then(async (relation:any)=>{
-            await Article.findByPk(relation.articleId).then((article:any)=>{
-                allArticles.push(article)
-            })
-        })
-    }
-    return allArticles
+  let allAssociations:any[] = []
+  let allArticles:any[] = []
+  for (const word of words) {
+      await Word.findOne({where:{word}}).then(async (findWord:any)=>{
+          if(!findWord){
+            await ParseArticlesByWords(words)
+          }
+          await findWord.getAssociations().then((associations:any)=>{
+              allAssociations.push(...associations)
+          })
+      })
+  }
+  allAssociations.sort((a:any,b:any)=>{
+      return b.dataValues.num - a.dataValues.num
+  })
+  console.log(allAssociations);
+  for (const association of allAssociations) {
+      await Relation.findOne({where:{associationId:association.id}}).then(async (relation:any)=>{
+          await Article.findByPk(relation.articleId).then((article:any)=>{
+              allArticles.push(article)
+          })
+      })
+  }
+  return allArticles
+}
+  
+export const getAllArticles = async (from: number, to: number) => {
+  let result:any = [];
+  await Article.findAll({ where: { id: {[Op.between]: [from,to]}}})
+  .then(async (articles: any) => {
+      for(let article of articles) {
+          result.push(article.dataValues)
+      }
+  })
+  return result;
 }
 
-export const CountAssociationRang = async ()=>{
+const CountAssociationRang = async ()=>{
   if(!(await Association.count()==0)){
     await Association.destroy({
       where: {},
@@ -73,6 +85,7 @@ export const CountAssociationRang = async ()=>{
     }
   })
 }
+
 
 const ParseWords = async (word: string) => {
   let links: link[] = []
