@@ -10,7 +10,8 @@ interface article {
     title: string,
     sourse: string,
     link: string,
-    article: string,
+    articleHtml: string,
+    articleText: string,
     keyWords: string[],
     description: string
 }
@@ -90,14 +91,15 @@ const articlesParse = async (links: link[]) => {
             link.link
             )
             .then((data) => {
-                let article: article = {title: '',sourse: '',link: '',article:'',keyWords:[],description:''}
+                let article: article = {title: '',sourse: '',link: '',articleText:'',articleHtml:'',keyWords:[],description:''}
                 article.link =  link.link
                 article.sourse = link.sourse
                 var $ = cheerio.load(data.data);
                 switch (link.sourse){
                     case 'Habr' :{
                         article.title = $('.post__title-text').text()
-                        article.article = String($('.post__text-html').html())
+                        article.articleHtml = String($('.post__text-html').html())
+                        article.articleText = $('.post__text-html').text()
                         article.description = String($('meta[name="description"]').attr('content'))
                         article.keyWords = ((String($('meta[name="keywords"]').attr('content'))).replace(/,/g, '')).split(' ')
                         break
@@ -130,7 +132,8 @@ const AddArticlesToDB = async (articles: article[]) => {
         async (findArticle: any) => {
           if (!findArticle) {
             await Article.create({
-              article: articles[i].article,
+              articleHtml: articles[i].articleHtml,
+              articleText: articles[i].articleText,
               preArticle: articles[i].description,
               sourse: articles[i].sourse,
               link: articles[i].link,
