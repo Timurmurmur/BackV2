@@ -17,11 +17,22 @@ interface article {
     description: string
 }
 
+export const getAllArticles = async (from: number, to: number) => {
+  let result:any = [];
+  await Article.findAll({ where: { id: {[Op.between]: [from,to]}}})
+  .then(async (articles: any) => {
+      for(let article of articles) {
+          result.push(article.dataValues)
+      }
+  })
+  return result;
+}
+
 export const ParseArticlesByWords = async (words: string[]) => {
   for (let i = 0; i < words.length; i++) {
     await ParseWords(words[i])
   }
-  await CountAssociationRang(words)
+  await CountAssociationRang()
 }
 
 export const GetArticlesByWords = async (words:any)=>{
@@ -29,12 +40,12 @@ export const GetArticlesByWords = async (words:any)=>{
   let allArticles:any[] = []
   for (const word of words) {
       await Word.findOne({where:{word}}).then(async (findWord:any)=>{
-          if(!findWord){
-            await ParseArticlesByWords(words)
-          }
-          await findWord.getAssociations().then((associations:any)=>{
-              allAssociations.push(...associations)
-          })
+        if(!findWord){
+          await ParseArticlesByWords([word])
+        }
+        await findWord.getAssociations().then((associations:any)=>{
+            allAssociations.push(...associations)
+        })
       })
   }
   allAssociations.sort((a:any,b:any)=>{
@@ -49,37 +60,20 @@ export const GetArticlesByWords = async (words:any)=>{
   }
   return allArticles
 }
-  
-export const getAllArticles = async (from: number, to: number) => {
-  let result:any = [];
-  await Article.findAll({ where: { id: {[Op.between]: [from,to]}}})
-  .then(async (articles: any) => {
-      for(let article of articles) {
-          result.push(article.dataValues)
-      }
-  })
-  return result;
-}
 
-const CountAssociationRang = async (words:string[])=>{
+const CountAssociationRang = async ()=>{
   const CountOfArticles = await Article.count()
-  for (const word of words) {
-      await Relation.findOne({where:{word}}).then(async(data:any)=>{
-      for (const item of data) {
-        await Word.findByPk(item.dataValues.wordId).then(async(word:any)=>{
-          await word.getArticles().then(async(articles:any)=>{
-            const ArticleOfWord = articles.length
-            for (const article of articles) {
-              await Association.create({num:Math.abs((article.dataValues.articleText.match(new RegExp(word.word, "g")) || []).length*Math.log10(ArticleOfWord/CountOfArticles))}).then(async(association:any)=>{
-                await Relation.update({associationId:association.id},{where:{wordId:word.id,articleId:article.dataValues.id}})
-              })
-            } 
-          })
-        })
-      }
-    })
-  }
-  
+  await Relation.findAll({where:{associationId:null}}).then(async (relations:any)=>{
+    for (const relation of relations) {
+      let word:any = await Word.findByPk(relation.wordId)
+      let ArticlesByWord = await word.getArticles()
+      const ArticleOfWord = ArticlesByWord.length
+      let article:any = await Article.findByPk(relation.articleId)
+      await Association.create({num:Math.abs((article.dataValues.articleText.match(new RegExp(word.word, "g")) || []).length*Math.log10(ArticleOfWord/CountOfArticles))}).then(async(association:any)=>{
+        await Relation.update({associationId:association.id},{where:{wordId:word.dataValues.id,articleId:article.dataValues.id}})
+      })
+    }
+  })
 }
 
 const ParseWords = async (word: string) => {
@@ -87,6 +81,18 @@ const ParseWords = async (word: string) => {
   links.push(...(await habrParseLinks(word)))
   ///
   const articles = await articlesParse(links)
+  for (const article of articles) {
+    let find = false
+    for (const keyWord of article.keyWords) {
+      if(keyWord == word){
+        find = true
+        break;
+      }
+    }
+    if(!find){
+      article.keyWords.push(word)
+    }
+  }
   await AddArticlesToDB(articles)
 }
 
@@ -194,3 +200,9 @@ const AddArticlesToDB = async (articles: article[]) => {
     }
   }
 };
+
+GetArticlesByWords(["ssh"]).then((data)=>{
+  for (const da of data) {
+    console.log(da.title);
+  }
+})
